@@ -1,89 +1,54 @@
-import random
-import pandas as pd
-from dash import Dash, dcc, html
+
+import dash
+from dash import dcc, html
 from dash.dependencies import Input, Output
-import plotly.graph_objects as go
+import plotly.graph_objs as go
+import random
 
-# Inicializa a aplicação
-app = Dash(__name__)
-server = app.server
+# Inicializando o app Dash
+app = dash.Dash(__name__)
+app.title = "Monitoramento de Estado de Pacientes"
 
-# Listas para armazenar dados simulados
-entradas = []
-saidas = []
-tempo = []
+# Layout do app
+app.layout = html.Div([
+    html.H1("Monitoramento de Acidentados e Recuperados", style={'textAlign': 'center', 'color': '#0074D9'}),
 
-# Layout do dashboard
-app.layout = html.Div(style={'backgroundColor': '#0f0f0f', 'padding': '20px'}, children=[
-    html.H1("💸 Fluxo Financeiro Dinâmico 🔄", style={
-        'textAlign': 'center',
-        'color': '#00ffcc',
-        'textShadow': '0 0 20px #00ffcc',
-        'fontSize': '36px'
-    }),
-    dcc.Graph(id='grafico-financas', style={'height': '70vh'}),
-    dcc.Interval(id='intervalo-atualizacao', interval=1000, n_intervals=0),
+    dcc.Graph(id='grafico-pacientes'),
+
+    dcc.Interval(
+        id='intervalo-atualizacao',
+        interval=2000,  # Atualiza a cada 2 segundos
+        n_intervals=0
+    ),
+
+    html.Div(id='texto-status', style={'textAlign': 'center', 'fontSize': '22px', 'marginTop': '20px'})
 ])
 
-# Callback para atualizar o gráfico em tempo real
+# Callback para atualizar o gráfico e o texto dinamicamente
 @app.callback(
-    Output('grafico-financas', 'figure'),
-    [Input('intervalo-atualizacao', 'n_intervals')]
+    Output('grafico-pacientes', 'figure'),
+    Output('texto-status', 'children'),
+    Input('intervalo-atualizacao', 'n_intervals')
 )
-def atualizar_grafico(n):
-    entrada = random.randint(500, 3000)
-    saida = random.randint(200, 2500)
-    hora = pd.Timestamp.now().strftime('%H:%M:%S')
+def atualizar_dados(n):
+    acidentados = random.randint(10, 30)
+    recuperados = random.randint(5, acidentados)  # Garantir que recuperados <= acidentados
 
-    entradas.append(entrada)
-    saidas.append(saida)
-    tempo.append(hora)
-
-    fig = go.Figure()
-
-    fig.add_trace(go.Scatter(
-        x=tempo,
-        y=entradas,
-        mode='lines+markers',
-        name='Entradas',
-        line=dict(color='lime', width=4),
-        marker=dict(size=10, color='lime', line=dict(width=2, color='white')),
-        fill='tozeroy',
-        fillcolor='rgba(0,255,0,0.1)'
-    ))
-
-    fig.add_trace(go.Scatter(
-        x=tempo,
-        y=saidas,
-        mode='lines+markers',
-        name='Saídas',
-        line=dict(color='red', width=4),
-        marker=dict(size=10, color='red', line=dict(width=2, color='white')),
-        fill='tozeroy',
-        fillcolor='rgba(255,0,0,0.1)'
-    ))
-
+    fig = go.Figure(data=[
+        go.Bar(name='Acidentados', x=['Pacientes'], y=[acidentados], marker_color='red'),
+        go.Bar(name='Recuperados', x=['Pacientes'], y=[recuperados], marker_color='green')
+    ])
+    
     fig.update_layout(
-        title="📊 Atualização em Tempo Real",
-        xaxis_title="⏱ Tempo",
-        yaxis_title="💰 Valor (R$)",
-        template="plotly_dark",
-        font=dict(color='white'),
-        paper_bgcolor='#0f0f0f',
-        plot_bgcolor='#0f0f0f',
-        xaxis_rangeslider_visible=False,
-        transition=dict(duration=500, easing='cubic-in-out'),
-        legend=dict(
-            orientation="h",
-            y=1.05,
-            x=1,
-            xanchor='right',
-            yanchor='bottom'
-        )
+        barmode='group',
+        title='Estado Atual dos Pacientes',
+        yaxis=dict(title='Quantidade', range=[0, 35]),
+        xaxis=dict(title='Categoria')
     )
 
-    return fig
+    texto = f"Total de Acidentados: {acidentados} | Total de Recuperados: {recuperados}"
+    return fig, texto
 
-# Executa o app
+# Rodando o servidor local
 if __name__ == '__main__':
     app.run(debug=True)
